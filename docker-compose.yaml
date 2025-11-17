@@ -1,0 +1,96 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGODB_DB}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - weather-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+  
+  grpc-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: grpc-server
+    container_name: weather-grpc-server
+    ports:
+      - "50051:50051"
+    environment:
+      - OPENWEATHER_API_KEY=${OWM_API_KEY}
+      - MONGO_URI=mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@mongodb:27017/${MONGODB_DB}?authSource=admin
+      - GRPC_API_KEY=${GRPC_API_KEY}
+      - GRPC_PORT=${GRPC_PORT} 
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - weather-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:50051'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  fastapi-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: fastapi-app
+    container_name: weather-fastapi
+    ports:
+      - "8000:8000"
+    environment:
+      - GRPC_SERVER_HOST=grpc-server
+      - GRPC_SERVER_PORT=${GRPC_PORT} 
+      - GRPC_API_KEY=${GRPC_API_KEY}
+      - MONGODB_URI=mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@mongodb:27017/${MONGODB_DB}?authSource=admin
+      - WEB_HOST=${WEB_HOST}
+      - WEB_PORT=${WEB_PORT}  
+    depends_on:
+      - grpc-server
+      - mongodb
+    networks:
+      - weather-network
+    volumes:
+      - ./client/ui:/app/client/ui
+    command: uvicorn client.ui.app:app --host 0.0.0.0 --port 8000 --reload
+  
+  grpc-client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: grpc-client
+    container_name: weather-grpc-client
+    stdin_open: true
+    tty: true
+    environment:
+      - GRPC_SERVER_HOST=grpc-server
+      - GRPC_SERVER_PORT=${GRPC_PORT}
+      - GRPC_API_KEY=${GRPC_API_KEY}
+    depends_on:
+      - grpc-server
+    networks:
+      - weather-network
+    profiles:
+      - client
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  weather-network:
+    driver: bridge
