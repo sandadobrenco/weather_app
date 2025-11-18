@@ -12,14 +12,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY proto/ proto/
-RUN python -m grpc_tools.protoc \
-    -I proto \
-    --python_out=generated \
-    --grpc_python_out=generated \
-    proto/weather.proto \
- && mkdir -p generated && touch generated/__init__.py \
- && sed -i 's/import weather_pb2/from generated import weather_pb2/' generated/weather_pb2_grpc.py
-
+COPY generated/ ./generated/
 COPY database/ ./database/
 COPY log/ ./log/
 COPY server/ ./server/

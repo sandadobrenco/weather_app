@@ -8,7 +8,7 @@ import collections.abc
 import grpc
 import grpc.aio
 import typing
-import weather_pb2
+from generated import weather_pb2
 
 _T = typing.TypeVar("_T")
 
