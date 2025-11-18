@@ -1,5 +1,7 @@
 FROM python:3.12-slim as base
 
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
@@ -9,21 +11,19 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY proto/ ./proto/
+COPY proto/ proto/
 RUN python -m grpc_tools.protoc \
-    -I./proto \
-    --python_out=./generated \
-    --grpc_python_out=./generated \
-    ./proto/weather.proto
+    -I proto \
+    --python_out=generated \
+    --grpc_python_out=generated \
+    proto/weather.proto \
+ && mkdir -p generated && touch generated/__init__.py \
+ && sed -i 's/import weather_pb2/from generated import weather_pb2/' generated/weather_pb2_grpc.py
 
-RUN mkdir -p generated && touch generated/__init__.py
-RUN if [ -f ./generated/weather_pb2_grpc.py ]; then \
-    sed -i 's/import weather_pb2/from generated import weather_pb2/' ./generated/weather_pb2_grpc.py; \
-    fi
-
+COPY database/ ./database/
+COPY log/ ./log/
 COPY server/ ./server/
 COPY client/ ./client/
-COPY generated/ ./generated/
 
 # ============================================
 # gRPC Server
@@ -32,6 +32,8 @@ COPY generated/ ./generated/
 FROM base as grpc-server
 
 WORKDIR /app
+
+EXPOSE 50051
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import grpc; channel = grpc.insecure_channel('localhost:50051'); channel.close()" || exit 1
@@ -59,5 +61,6 @@ CMD ["uvicorn", "client.ui.app:app", "--host", "0.0.0.0", "--port", "8000", "--r
 FROM base as grpc-client
 
 WORKDIR /app
+
 
 CMD ["python", "-m", "client.weather_client"]
