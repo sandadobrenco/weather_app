@@ -2,10 +2,14 @@ services:
   mongodb:
     image: mongo:7.0
     container_name: mongodb
+    env_file:
+      - .env
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
       MONGO_INITDB_DATABASE: ${MONGODB_DB}
+      MONGO_INITDB_HOST: ${MONGODB_HOST}
+      MONGO_INITDB_PORT: ${MONGODB_PORT}
     ports:
       - "27017:27017"
     volumes:
@@ -28,9 +32,11 @@ services:
     container_name: weather-grpc-server
     ports:
       - "50051:50051"
+    env_file:
+      - .env
     environment:
       - OPENWEATHER_API_KEY=${OWM_API_KEY}
-      - MONGO_URI=mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@mongodb:27017/${MONGODB_DB}?authSource=admin
+      - MONGO_URI=mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_HOST}:${MONGODB_PORT}/${MONGODB_DB}?authSource=admin
       - GRPC_API_KEY=${GRPC_API_KEY}
       - GRPC_PORT=${GRPC_PORT} 
     depends_on:
@@ -52,11 +58,13 @@ services:
     container_name: weather-fastapi
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
       - GRPC_SERVER_HOST=grpc-server
       - GRPC_SERVER_PORT=${GRPC_PORT} 
       - GRPC_API_KEY=${GRPC_API_KEY}
-      - MONGODB_URI=mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@mongodb:27017/${MONGODB_DB}?authSource=admin
+      - MONGO_URI=mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_HOST}:${MONGODB_PORT}/${MONGODB_DB}?authSource=admin
       - WEB_HOST=${WEB_HOST}
       - WEB_PORT=${WEB_PORT}  
     depends_on:
@@ -76,6 +84,8 @@ services:
     container_name: weather-grpc-client
     stdin_open: true
     tty: true
+    env_file:
+      - .env
     environment:
       - GRPC_SERVER_HOST=grpc-server
       - GRPC_SERVER_PORT=${GRPC_PORT}
