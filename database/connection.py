@@ -26,8 +26,8 @@ class MongoDBConnection:
             username = os.getenv('MONGODB_USERNAME')
             password = os.getenv('MONGODB_PASSWORD')
             db_name = os.getenv('MONGODB_DB')
-            host = os.getenv('MONGODB_HOST','mongodb')
-            port = os.getenv('MONGODB_PORT','27017')
+            host = os.getenv('MONGODB_HOST')
+            port = os.getenv('MONGODB_PORT')
             
             self.mongo_uri = os.getenv('MONGO_URI', f'mongodb://{username}:{password}@{host}:{port}/{db_name}?authSource=admin')
             
