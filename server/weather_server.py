@@ -6,8 +6,9 @@ from generated import weather_pb2, weather_pb2_grpc
 from server.config import cfg
 from server.auth_interceptor import AuthInterceptor
 from server.weather_service import WeatherService
-from server.api_client import CityNotFoundError, OpenWeatherError  # <- corecție import
-
+from server.api_client import CityNotFoundError, OpenWeatherError  
+from database.repository import get_repository
+from database.models import WeatherData as WeatherDoc
 
 from log.config import configure_logging, get_logger
 
@@ -28,6 +29,12 @@ class WeatherServicer(weather_pb2_grpc.WeatherServiceServicer):
 
         try:
             data = await self.service.get_weather(city)
+            try:
+                repo = get_repository()
+                repo.save_weather(WeatherDoc(**data)) 
+            except Exception as db_err:
+                log.error("db.save_failed", error=str(db_err))
+                
             return weather_pb2.WeatherResponse(
                 city_name=data["city_name"],
                 temperature=data["temperature"],
