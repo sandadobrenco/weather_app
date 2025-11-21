@@ -2,11 +2,11 @@
 
 A simple **client–server** app built with **Python gRPC** that fetches live weather from **OpenWeatherMap**, persists snapshots to **MongoDB**, and exposes a small **FastAPI UI** to visualize historical temperature/humidity with charts.
 
-> **Stack**: Python 3.12 · gRPC · FastAPI · httpx · MongoDB · Docker/Compose 
+> **Stack**: Python 3.12 · gRPC · FastAPI · httpx · MongoDB · Docker/Compose
 
 ---
 
-## ✨ Features
+## Features
 
 - **gRPC Server**
   - RPC: `GetWeather(city_name)`
@@ -23,12 +23,23 @@ A simple **client–server** app built with **Python gRPC** that fetches live we
   - `/` – HTML page with 2 graphs (**temperature** & **humidity**) 
 
 - **OpenWeatherMap Integration**
-- 
 - **MongoDB Persistence**
 
 ---
 
-## ⚙️ Configuration
+## Running commands
+
+docker compose up -d --build
+
+gRPC client: Introduce a ciy name
+
+docker compose exec grpc-client python -m client.weather_client --host grpc-server --port 50051
+
+
+docker compose down
+
+--- 
+## Configuration
 
 .env file example:
 
@@ -45,7 +56,6 @@ MONGODB_DB=weather
 MONGODB_HOST=mongodb
 MONGODB_PORT=27017
 
-# Web UI
 WEB_HOST=0.0.0.0
 WEB_PORT=8000
 UI_TITLE=Weather Charts
@@ -56,18 +66,5 @@ SERVICE_API_KEY=my-key
 
 HTTP_TIMEOUT=5
 HTTP_RETRIES=2
-
----
-
-## Running commands
-
-docker compose up -d --build
-
-gRPC client: Introduce a ciy name
-docker compose exec grpc-client python -m client.weather_client --host grpc-server --port 50051
-
-
-docker compose down
-
-## 🗂 Repository Layout
+```
 
